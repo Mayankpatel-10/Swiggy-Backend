@@ -1,21 +1,20 @@
 const express = require("express");
 const router = express.Router();
-
-const { protect, authorize } = require("../middleware/authMiddleware");
 const {
-  placeOrder,
-  getMyOrders,
-  getRestaurantOrders,
+  getDeliveryFeeCalculation,
+  createOrder,
+  cancelOrder,
+  getOrderById,
+  getUserOrderHistory,
   updateOrderStatus,
-  mockPayment,
 } = require("../controllers/orderController");
+const { protect, authorize } = require("../middleware/authMiddleware");
 
-router.use(protect);
-
-router.post("/", authorize("user"), placeOrder);
-router.get("/my", authorize("user"), getMyOrders);
-router.post("/verify", authorize("user"), mockPayment);
-router.get("/restaurant", authorize("restaurant"), getRestaurantOrders);
-router.put("/:id/status", authorize("restaurant"), updateOrderStatus);
+router.post("/calculate-delivery-fee", getDeliveryFeeCalculation);
+router.post("/create", protect, createOrder);
+router.post("/cancel/:orderId", protect, cancelOrder);
+router.get("/history", protect, getUserOrderHistory);
+router.get("/:orderId", protect, getOrderById);
+router.put("/update-status/:orderId", protect, updateOrderStatus);
 
 module.exports = router;

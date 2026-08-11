@@ -1,19 +1,16 @@
 const express = require("express");
 const router = express.Router();
-
-const { protect, authorize } = require("../middleware/authMiddleware");
 const {
-  addToCart,
   getCart,
-  updateCartItem,
+  addToCart,
+  updateQuantity,
   clearCart,
 } = require("../controllers/cartController");
+const { protect } = require("../middleware/authMiddleware");
 
-router.use(protect);
-router.use(authorize("user"));
-router.post("/", addToCart);
-router.get("/", getCart);
-router.put("/:itemId", updateCartItem);
-router.delete("/", clearCart);
+router.get("/", protect, getCart);
+router.post("/add", protect, addToCart);
+router.put("/quantity", protect, updateQuantity);
+router.delete("/clear", protect, clearCart);
 
 module.exports = router;

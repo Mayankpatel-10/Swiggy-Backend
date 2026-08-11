@@ -5,39 +5,47 @@ const menuSchema = new mongoose.Schema(
     restaurant: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Restaurant",
-      required: true
+      required: true,
     },
     name: {
       type: String,
-      required: true
+      required: true,
+      trim: true,
     },
     description: {
-      type: String
+      type: String,
+      default: "",
     },
     price: {
       type: Number,
       required: true,
-      min: 0
+      min: 0,
     },
     category: {
-      type: String
+      type: String,
+      required: true,
+      default: "Main Course",
     },
     isVeg: {
       type: Boolean,
-      default: false
+      default: true,
+    },
+    isBestSeller: {
+      type: Boolean,
+      default: false,
+    },
+    image: {
+      type: String,
+      default: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80",
     },
     isAvailable: {
       type: Boolean,
-      default: true
+      default: true,
     },
-    image: {
-      type: String
-    }
   },
   { timestamps: true }
 );
 
-// Index for search performance
-menuSchema.index({ name: "text" });
+menuSchema.index({ restaurant: 1, category: 1 });
 
 module.exports = mongoose.model("Menu", menuSchema);
