@@ -7,6 +7,7 @@ import { SocketProvider } from './context/SocketContext';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import CartDrawer from './components/CartDrawer';
+import ProtectedRoute from './components/ProtectedRoute';
 
 import LandingPage from './pages/LandingPage';
 import RestaurantSearchPage from './pages/RestaurantSearchPage';
@@ -32,17 +33,66 @@ export default function App() {
               
               <main className="flex-1">
                 <Routes>
+                  {/* Public / Customer Routes */}
                   <Route path="/" element={<LandingPage />} />
                   <Route path="/restaurants" element={<RestaurantSearchPage />} />
                   <Route path="/restaurants/:restaurantId" element={<RestaurantDetailPage />} />
-                  <Route path="/checkout" element={<CheckoutPage />} />
+                  
+                  {/* Authenticated Customer Routes */}
+                  <Route
+                    path="/checkout"
+                    element={
+                      <ProtectedRoute allowedRoles={['customer', 'admin', 'delivery_partner']}>
+                        <CheckoutPage />
+                      </ProtectedRoute>
+                    }
+                  />
                   <Route path="/orders/:orderId/tracking" element={<OrderTrackingPage />} />
-                  <Route path="/profile" element={<UserProfilePage />} />
+                  <Route
+                    path="/profile"
+                    element={
+                      <ProtectedRoute allowedRoles={['customer', 'admin', 'delivery_partner']}>
+                        <UserProfilePage />
+                      </ProtectedRoute>
+                    }
+                  />
                   <Route path="/notifications" element={<NotificationsPage />} />
-                  <Route path="/delivery/dashboard" element={<DeliveryDashboardPage />} />
-                  <Route path="/admin" element={<AdminDashboardPage />} />
-                  <Route path="/admin/fraud" element={<AdminFraudPage />} />
-                  <Route path="/admin/surge-settings" element={<AdminSurgePage />} />
+
+                  {/* Delivery Partner Dedicated Portal */}
+                  <Route
+                    path="/delivery/dashboard"
+                    element={
+                      <ProtectedRoute allowedRoles={['delivery_partner', 'admin']}>
+                        <DeliveryDashboardPage />
+                      </ProtectedRoute>
+                    }
+                  />
+
+                  {/* Admin Dedicated Dashboard */}
+                  <Route
+                    path="/admin"
+                    element={
+                      <ProtectedRoute allowedRoles={['admin']}>
+                        <AdminDashboardPage />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/admin/fraud"
+                    element={
+                      <ProtectedRoute allowedRoles={['admin']}>
+                        <AdminFraudPage />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/admin/surge-settings"
+                    element={
+                      <ProtectedRoute allowedRoles={['admin']}>
+                        <AdminSurgePage />
+                      </ProtectedRoute>
+                    }
+                  />
                 </Routes>
               </main>
 

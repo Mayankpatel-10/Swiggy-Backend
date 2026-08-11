@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { X, Mail, Lock, User, Phone, Shield, Sparkles } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { X, Mail, Lock, User, Phone, Sparkles } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export default function AuthModal({ isOpen, onClose }) {
+  const navigate = useNavigate();
   const { login, register } = useAuth();
   const [isRegister, setIsRegister] = useState(false);
   const [formData, setFormData] = useState({
@@ -17,17 +19,32 @@ export default function AuthModal({ isOpen, onClose }) {
 
   if (!isOpen) return null;
 
+  const redirectByRole = (role) => {
+    if (role === 'admin') {
+      navigate('/admin');
+    } else if (role === 'delivery_partner') {
+      navigate('/delivery/dashboard');
+    } else {
+      navigate('/');
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setSubmitting(true);
     try {
+      let res;
       if (isRegister) {
-        await register(formData.name, formData.email, formData.password, formData.role, formData.phone);
+        res = await register(formData.name, formData.email, formData.password, formData.role, formData.phone);
       } else {
-        await login(formData.email, formData.password);
+        res = await login(formData.email, formData.password);
       }
+
       onClose();
+
+      const userRole = res.data?.user?.role || formData.role;
+      redirectByRole(userRole);
     } catch (err) {
       setError(err.response?.data?.message || 'Authentication failed. Please check your credentials.');
     } finally {
@@ -50,7 +67,7 @@ export default function AuthModal({ isOpen, onClose }) {
               {isRegister ? 'Create an Account' : 'Welcome Back'}
             </h2>
             <p className="text-xs text-warm-beige/80 mt-1">
-              Sign in to manage food orders, fraud tools, & delivery operations
+              Sign in to automatically open your role dashboard
             </p>
           </div>
           <button
@@ -73,21 +90,21 @@ export default function AuthModal({ isOpen, onClose }) {
               onClick={() => handleQuickFill('admin@example.com', 'admin123')}
               className="px-2.5 py-1 rounded bg-warm-dark text-white hover:bg-black transition-colors"
             >
-              👑 Admin Demo
+              👑 Admin Demo (/admin)
             </button>
             <button
               type="button"
               onClick={() => handleQuickFill('customer@example.com', 'customer123')}
               className="px-2.5 py-1 rounded bg-warm-olive text-white hover:bg-warm-dark transition-colors"
             >
-              🍔 Customer Demo
+              🍔 Customer Demo (Food App)
             </button>
             <button
               type="button"
               onClick={() => handleQuickFill('delivery@example.com', 'delivery123')}
               className="px-2.5 py-1 rounded bg-warm-amber text-white hover:bg-warm-amber-hover transition-colors"
             >
-              🛵 Delivery Partner Demo
+              🛵 Delivery Demo (/delivery)
             </button>
           </div>
         </div>
@@ -170,9 +187,9 @@ export default function AuthModal({ isOpen, onClose }) {
                   onChange={(e) => setFormData({ ...formData, role: e.target.value })}
                   className="w-full px-3 py-2 text-sm bg-warm-bg border border-warm-border rounded-lg focus:outline-none focus:ring-2 focus:ring-warm-amber"
                 >
-                  <option value="customer">Customer (Food Ordering)</option>
-                  <option value="delivery_partner">Delivery Partner</option>
-                  <option value="admin">System Admin</option>
+                  <option value="customer">Customer (Food Ordering Portal)</option>
+                  <option value="delivery_partner">Delivery Partner Portal</option>
+                  <option value="admin">System Admin Dashboard</option>
                 </select>
               </div>
             </>
