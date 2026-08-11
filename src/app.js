@@ -40,16 +40,19 @@ app.get("/api-status", (req, res) => {
   });
 });
 
-// Fallback to Index.html for Single Page React App
-app.get("*", (req, res) => {
-  res.sendFile(path.join(clientDistPath, "index.html"), (err) => {
-    if (err) {
-      res.status(200).json({
-        success: true,
-        message: "Swiggy API Server Running. (Build client app with 'npm run build' inside client/)",
-      });
-    }
-  });
+// Fallback to Index.html for Single Page React App (Express 5.x compatible syntax)
+app.use((req, res, next) => {
+  if (req.method === "GET" && !req.path.startsWith("/api")) {
+    return res.sendFile(path.join(clientDistPath, "index.html"), (err) => {
+      if (err) {
+        return res.status(200).json({
+          success: true,
+          message: "Swiggy API Server Running. (Build client app with 'npm run build' inside client/)",
+        });
+      }
+    });
+  }
+  next();
 });
 
 // Centralized Error Handling Middleware
