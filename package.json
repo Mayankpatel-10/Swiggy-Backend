@@ -8,6 +8,7 @@
     "start": "node src/server.js",
     "seed": "node src/seed/seed.js",
     "test": "node src/tests/backend.test.js",
+    "test:full": "node src/tests/fullBackendTest.js",
     "build:client": "cd client && npm run build"
   },
   "keywords": [],
