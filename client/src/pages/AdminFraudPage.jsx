@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldAlert, ShieldCheck, UserX, UserCheck, AlertTriangle, CheckCircle, XCircle, Eye, Search } from 'lucide-react';
+import { ShieldAlert, ShieldCheck, UserX, UserCheck, AlertTriangle, CheckCircle, XCircle, Eye, Search, Filter, RefreshCw } from 'lucide-react';
 import API from '../services/api';
 import FraudScoreBadge from '../components/FraudScoreBadge';
 
@@ -8,6 +8,8 @@ export default function AdminFraudPage() {
   const [stats, setStats] = useState({});
   const [loading, setLoading] = useState(true);
   const [selectedLog, setSelectedLog] = useState(null);
+  const [activeTab, setActiveTab] = useState('ALL');
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     fetchFraudOrders();
@@ -69,18 +71,44 @@ export default function AdminFraudPage() {
     }
   };
 
+  // Filter logs based on activeTab & searchQuery
+  const filteredLogs = logs.filter((log) => {
+    const matchesSearch =
+      log.order?._id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      log.user?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      log.user?.email?.toLowerCase().includes(searchQuery.toLowerCase());
+
+    if (!matchesSearch) return false;
+
+    if (activeTab === 'CRITICAL') return log.riskLevel === 'CRITICAL';
+    if (activeTab === 'HIGH') return log.riskLevel === 'HIGH';
+    if (activeTab === 'APPROVED') return log.status === 'APPROVED';
+    if (activeTab === 'REJECTED') return log.status === 'REJECTED';
+    return true;
+  });
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       
       {/* Header */}
-      <div className="border-b border-warm-border pb-4">
-        <div className="flex items-center gap-2">
-          <ShieldAlert className="w-6 h-6 text-warm-amber" />
-          <h1 className="text-3xl font-black text-warm-dark tracking-tight">Fraud Detection & Security Panel</h1>
+      <div className="border-b border-warm-border pb-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2">
+            <ShieldAlert className="w-6 h-6 text-warm-amber" />
+            <h1 className="text-3xl font-black text-warm-dark tracking-tight">Fraud Detection & Security Panel</h1>
+          </div>
+          <p className="text-xs text-warm-muted mt-1">
+            Automated rule-based risk evaluation engine monitoring rapid ordering, cancellation abuse, and coupon manipulation.
+          </p>
         </div>
-        <p className="text-xs text-warm-muted mt-1">
-          Automated rule-based risk evaluation engine monitoring rapid ordering, cancellation abuse, and coupon manipulation.
-        </p>
+
+        <button
+          onClick={fetchFraudOrders}
+          className="px-3.5 py-2 rounded-xl bg-warm-card border border-warm-border hover:bg-warm-beige text-warm-dark text-xs font-bold flex items-center gap-1.5 shadow-sm transition-colors self-start md:self-auto"
+        >
+          <RefreshCw className="w-4 h-4 text-warm-amber" />
+          <span>Refresh Logs</span>
+        </button>
       </div>
 
       {/* KPI Stats Grid */}
@@ -107,16 +135,46 @@ export default function AdminFraudPage() {
         </div>
       </div>
 
+      {/* Filter Tabs & Search Bar */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-warm-card p-3 px-4 rounded-2xl border border-warm-border shadow-sm">
+        <div className="flex flex-wrap items-center gap-1.5 w-full sm:w-auto">
+          {['ALL', 'CRITICAL', 'HIGH', 'APPROVED', 'REJECTED'].map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
+                activeTab === tab
+                  ? 'bg-warm-dark text-white shadow-sm'
+                  : 'text-warm-muted hover:text-warm-dark hover:bg-warm-bg'
+              }`}
+            >
+              {tab === 'ALL' ? 'All Flagged' : tab}
+            </button>
+          ))}
+        </div>
+
+        <div className="relative w-full sm:w-64">
+          <Search className="absolute left-3 top-2.5 w-4 h-4 text-warm-muted" />
+          <input
+            type="text"
+            placeholder="Search Order ID or User..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-9 pr-4 py-2 text-xs bg-warm-bg border border-warm-border rounded-xl focus:outline-none focus:ring-2 focus:ring-warm-amber"
+          />
+        </div>
+      </div>
+
       {/* Flagged Transactions Table */}
       <div className="bg-warm-card rounded-2xl border border-warm-border shadow-sm overflow-hidden">
         <div className="p-4 border-b border-warm-border bg-warm-bg flex items-center justify-between">
-          <h3 className="font-bold text-sm text-warm-dark">Suspicious Order Logs</h3>
-          <span className="text-xs text-warm-muted">{logs.length} transactions requiring admin audit</span>
+          <h3 className="font-bold text-sm text-warm-dark">Suspicious Order Audit Logs</h3>
+          <span className="text-xs text-warm-muted">{filteredLogs.length} transactions shown</span>
         </div>
 
         {loading ? (
           <div className="py-16 text-center text-xs text-warm-muted">Analyzing fraud log repository...</div>
-        ) : logs.length > 0 ? (
+        ) : filteredLogs.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs border-collapse">
               <thead>
@@ -131,7 +189,7 @@ export default function AdminFraudPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-warm-border/60">
-                {logs.map((log) => {
+                {filteredLogs.map((log) => {
                   const ord = log.order;
                   const usr = log.user || ord?.user;
                   if (!ord) return null;
@@ -229,7 +287,7 @@ export default function AdminFraudPage() {
             </table>
           </div>
         ) : (
-          <div className="py-16 text-center text-xs text-warm-muted">No flagged suspicious orders.</div>
+          <div className="py-16 text-center text-xs text-warm-muted">No flagged suspicious orders found for this view.</div>
         )}
       </div>
 
