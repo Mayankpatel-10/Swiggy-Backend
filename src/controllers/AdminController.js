@@ -1,117 +1,274 @@
 const Order = require("../models/order");
 const User = require("../models/User");
-const restaurant = require("../models/restaurant");
+const Restaurant = require("../models/restaurant");
+const FraudLog = require("../models/FraudLog");
+const SurgeSettings = require("../models/SurgeSettings");
+const DeliveryPartner = require("../models/DeliveryPartner");
+const pricingService = require("../services/pricingService");
+const notificationService = require("../services/notificationService");
 
-exports.getallUsers = async (req, res) => {
+/**
+ * Get Fraud Dashboard Flagged Orders
+ */
+exports.getFraudOrders = async (req, res) => {
   try {
-    const users = await User.find().select("-password");
-    res.status(200).json({
+    const { riskLevel, status } = req.query;
+    const filter = {};
+
+    if (riskLevel) filter.riskLevel = riskLevel;
+    if (status) filter.status = status;
+
+    const flaggedLogs = await FraudLog.find(filter)
+      .populate({
+        path: "order",
+        populate: [
+          { path: "user", select: "name email phone cancellationCount refundCount ordersCount isRestricted" },
+          { path: "restaurant", select: "name cuisine address" },
+          { path: "assignedDeliveryPartner" },
+        ],
+      })
+      .populate("user", "name email phone cancellationCount refundCount ordersCount isRestricted")
+      .sort({ createdAt: -1 });
+
+    const totalFlagged = await FraudLog.countDocuments({ status: "FLAGGED" });
+    const criticalCount = await FraudLog.countDocuments({ riskLevel: "CRITICAL" });
+    const highCount = await FraudLog.countDocuments({ riskLevel: "HIGH" });
+    const mediumCount = await FraudLog.countDocuments({ riskLevel: "MEDIUM" });
+    const suspendedUsersCount = await User.countDocuments({ isRestricted: true });
+
+    return res.status(200).json({
       success: true,
-      data: users,
-      count: users.length,
+      stats: {
+        totalFlagged,
+        criticalCount,
+        highCount,
+        mediumCount,
+        suspendedUsersCount,
+      },
+      data: flaggedLogs,
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    return res.status(500).json({ success: false, message: error.message });
   }
 };
 
-exports.toggleBlockUser = async (req, res) => {
+/**
+ * Approve Flagged Order
+ */
+exports.approveOrder = async (req, res) => {
   try {
-    const user = await User.findById(req.params.id);
-
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found",
-      });
+    const { orderId } = req.params;
+    const order = await Order.findById(orderId);
+    if (!order) {
+      return res.status(404).json({ success: false, message: "Order not found" });
     }
 
-    user.isblocked = !user.isblocked;
+    order.isSuspicious = false;
+    order.riskLevel = "LOW";
+    await order.save();
+
+    await FraudLog.updateMany(
+      { order: orderId },
+      {
+        status: "APPROVED",
+        actionTaken: "Approved by Admin after manual fraud review",
+        reviewedBy: req.user._id,
+        reviewedAt: new Date(),
+      }
+    );
+
+    await notificationService.sendNotification({
+      userId: order.user,
+      title: "Order Approved ✅",
+      message: `Your order #${order._id.toString().slice(-6)} has been verified and approved by system admin.`,
+      type: "ORDER_UPDATE",
+    });
+
+    return res.status(200).json({ success: true, message: "Order approved successfully", data: order });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/**
+ * Reject Flagged Order
+ */
+exports.rejectOrder = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const { reason } = req.body;
+
+    const order = await Order.findById(orderId);
+    if (!order) {
+      return res.status(404).json({ success: false, message: "Order not found" });
+    }
+
+    order.orderStatus = "CANCELLED";
+    order.cancellationReason = reason || "Rejected by administrator due to security risk";
+    order.timeline.cancelledAt = new Date();
+    await order.save();
+
+    await FraudLog.updateMany(
+      { order: orderId },
+      {
+        status: "REJECTED",
+        actionTaken: `Rejected by Admin: ${reason || "Security Risk"}`,
+        reviewedBy: req.user._id,
+        reviewedAt: new Date(),
+      }
+    );
+
+    await notificationService.sendNotification({
+      userId: order.user,
+      title: "Order Cancelled by System Admin ⚠️",
+      message: `Your order #${order._id.toString().slice(-6)} was rejected during fraud verification.`,
+      type: "FRAUD_ALERT",
+    });
+
+    return res.status(200).json({ success: true, message: "Order rejected and cancelled", data: order });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/**
+ * Restrict User Account
+ */
+exports.restrictUser = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { reason } = req.body;
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    user.isRestricted = true;
+    user.restrictionReason = reason || "Suspicious platform activity detected by system admin";
     await user.save();
 
-    res.status(200).json({
-      success: true,
-      message: `User ${user.isblocked ? "blocked" : "unblocked"} successfully`,
-      data: user,
-    });
+    return res.status(200).json({ success: true, message: `User account '${user.name}' restricted`, data: user });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    return res.status(500).json({ success: false, message: error.message });
   }
 };
 
-exports.approveRestaurant = async (req, res) => {
+/**
+ * Unrestrict User Account
+ */
+exports.unrestrictUser = async (req, res) => {
   try {
-    const Restaurant = await restaurant.findById(req.params.id);
-
-    if (!Restaurant) {
-      return res.status(404).json({
-        success: false,
-        message: "Restaurant not found",
-      });
+    const { userId } = req.params;
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
     }
 
-    Restaurant.isApproved = !Restaurant.isApproved;
-    await Restaurant.save();
+    user.isRestricted = false;
+    user.restrictionReason = "";
+    await user.save();
 
-    res.status(200).json({
-      success: true,
-      message: `Restaurant ${Restaurant.isApproved ? "approved" : "disapproved"} successfully`,
-      data: Restaurant,
-    });
+    return res.status(200).json({ success: true, message: `User account '${user.name}' unrestricted`, data: user });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
-exports.getAllOrders = async (req, res) => {
-  try {
-    const orders = await Order.find()
-      .populate("user", "name email")
-      .populate("restaurant", "name");
-    res.status(200).json({
-      success: true,
-      data: orders,
-      count: orders.length,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    return res.status(500).json({ success: false, message: error.message });
   }
 };
 
-exports.getPlatformStatistics = async (req, res) => {
+/**
+ * Get Surge Pricing Settings
+ */
+exports.getSurgeSettings = async (req, res) => {
   try {
-    const totalUsers = await User.countDocuments();
-    const totalRestaurants = await restaurant.countDocuments();
+    const settings = await pricingService.getOrInitSurgeSettings();
+    return res.status(200).json({ success: true, data: settings });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/**
+ * Update Surge Pricing Settings
+ */
+exports.updateSurgeSettings = async (req, res) => {
+  try {
+    let settings = await SurgeSettings.findOne();
+    if (!settings) {
+      settings = new SurgeSettings(req.body);
+    } else {
+      Object.assign(settings, req.body);
+    }
+    await settings.save();
+
+    return res.status(200).json({ success: true, message: "Surge settings updated", data: settings });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+/**
+ * Get Comprehensive Admin Analytics & Dashboard Overview
+ */
+exports.getAdminDashboardStats = async (req, res) => {
+  try {
     const totalOrders = await Order.countDocuments();
-    const totalRevenue = await Order.aggregate([
-      { $match: { paymentStatus: "Paid" } },
-      { $group: { _id: null, totalRevenue: { $sum: "$totalAmount" } } },
+    const totalUsers = await User.countDocuments({ role: "customer" });
+    const totalRestaurants = await Restaurant.countDocuments();
+    const totalDeliveryPartners = await DeliveryPartner.countDocuments();
+
+    // Total Revenue calculation
+    const revenueResult = await Order.aggregate([
+      { $match: { orderStatus: { $ne: "CANCELLED" } } },
+      { $group: { _id: null, totalRevenue: { $sum: "$finalTotal" } } },
     ]);
-    res.status(200).json({
+    const totalRevenue = revenueResult[0]?.totalRevenue || 0;
+
+    const activeDeliveries = await Order.countDocuments({
+      orderStatus: { $in: ["PREPARING", "READY_FOR_PICKUP", "OUT_FOR_DELIVERY"] },
+    });
+
+    const suspiciousOrdersCount = await Order.countDocuments({ isSuspicious: true });
+    const cancelledOrdersCount = await Order.countDocuments({ orderStatus: "CANCELLED" });
+
+    // Recent 7 Days Order Chart Data
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const dailyOrders = await Order.aggregate([
+      { $match: { createdAt: { $gte: sevenDaysAgo } } },
+      {
+        $group: {
+          _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+          ordersCount: { $sum: 1 },
+          revenue: { $sum: "$finalTotal" },
+        },
+      },
+      { $sort: { _id: 1 } },
+    ]);
+
+    // Order Status Distribution
+    const statusDistribution = await Order.aggregate([
+      { $group: { _id: "$orderStatus", count: { $sum: 1 } } },
+    ]);
+
+    return res.status(200).json({
       success: true,
       data: {
-        totalUsers,
-        totalRestaurants,
-        totalOrders,
-        totalRevenue:
-          totalRevenue.length > 0 ? totalRevenue[0].totalRevenue : 0,
+        overview: {
+          totalOrders,
+          totalRevenue,
+          totalUsers,
+          totalRestaurants,
+          totalDeliveryPartners,
+          activeDeliveries,
+          suspiciousOrdersCount,
+          cancelledOrdersCount,
+        },
+        charts: {
+          dailyOrders,
+          statusDistribution,
+        },
       },
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    return res.status(500).json({ success: false, message: error.message });
   }
 };

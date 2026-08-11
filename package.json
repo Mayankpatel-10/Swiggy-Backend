@@ -1,11 +1,16 @@
 {
   "name": "swiggy",
   "version": "1.0.0",
-  "description": "",
+  "description": "Production Quality Swiggy Food Delivery Platform",
   "main": "src/server.js",
   "scripts": {
     "dev": "nodemon src/server.js",
-    "start": "node src/server.js"
+    "start": "node src/server.js",
+    "seed": "node src/seed/seed.js",
+    "test": "node src/tests/backend.test.js",
+    "test:full": "node src/tests/fullBackendTest.js",
+    "test:6features": "node src/tests/detailedFeaturesTest.js",
+    "build:client": "cd client && npm run build"
   },
   "keywords": [],
   "author": "",
@@ -16,7 +21,8 @@
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
-    "mongoose": "^9.2.1"
+    "mongoose": "^9.2.1",
+    "socket.io": "^4.8.1"
   },
   "devDependencies": {
     "nodemon": "^3.1.13"
