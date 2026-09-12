@@ -6,11 +6,11 @@ const FraudLog = require("../models/FraudLog");
  * Evaluate order for suspicious activity and return risk assessment.
  * @param {Object} param0 { userId, restaurantId, totalAmount, couponCode, items }
  */
-async function evaluateOrderRisk({ userId, totalAmount, couponCode }) {
+async function evaluateOrderRisk({ userId, userDoc, totalAmount, couponCode }) {
   let riskScore = 0;
   const reasons = [];
 
-  const user = await User.findById(userId);
+  const user = userDoc || (await User.findById(userId));
   if (!user) {
     return { riskScore: 0, riskLevel: "LOW", isSuspicious: false, reasons: [] };
   }

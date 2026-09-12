@@ -10,6 +10,11 @@ const {
   updateSurgeSettings,
   getAdminDashboardStats,
 } = require("../controllers/AdminController");
+const {
+  createRestaurant,
+  updateRestaurant,
+  deleteRestaurant,
+} = require("../controllers/restaurantController");
 const { protect, authorize } = require("../middleware/authMiddleware");
 
 // All admin routes protected with admin authorization
@@ -17,6 +22,11 @@ router.use(protect);
 router.use(authorize("admin"));
 
 router.get("/dashboard-stats", getAdminDashboardStats);
+
+// Restaurant Management Routes
+router.post("/restaurants/create", createRestaurant);
+router.put("/restaurants/update/:id", updateRestaurant);
+router.delete("/restaurants/:id", deleteRestaurant);
 
 // Fraud Monitoring Routes
 router.get("/fraud/orders", getFraudOrders);

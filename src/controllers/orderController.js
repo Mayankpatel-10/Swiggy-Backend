@@ -55,7 +55,7 @@ exports.createOrder = async (req, res) => {
           message: `Menu item '${item.name || "selected item"}' is no longer available`,
         });
       }
-      const qty = parseInt(item.quantity, 10) || 1;
+      const qty = Math.max(1, parseInt(item.quantity, 10) || 1);
       const itemSubtotal = menuItem.price * qty;
       subtotal += itemSubtotal;
 
@@ -102,6 +102,7 @@ exports.createOrder = async (req, res) => {
     // 6. Fraud Detection Engine Evaluation
     const riskEval = await fraudService.evaluateOrderRisk({
       userId: req.user._id,
+      userDoc: req.user,
       totalAmount: finalTotal,
       couponCode: appliedCouponCode,
     });

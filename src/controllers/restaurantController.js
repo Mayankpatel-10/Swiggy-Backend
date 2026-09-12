@@ -24,23 +24,35 @@ exports.searchRestaurants = async (req, res) => {
     if (query && query.trim() !== "") {
       const q = query.trim();
 
-      // Create fuzzy regex pattern for spelling variation (e.g. "piza" matches "Pizza")
-      const fuzzyRegexPattern = q
-        .split("")
-        .map((char) => `${char}+`)
-        .join(".*");
+      const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-      const regexFilter = new RegExp(fuzzyRegexPattern, "i");
+      try {
+        // Create safe fuzzy regex pattern for spelling variation (e.g. "piza" matches "Pizza")
+        const safeChars = q
+          .split("")
+          .map((char) => escapeRegex(char))
+          .filter((c) => c.length > 0);
 
-      // Search matching menu items to also find restaurants offering matching food
-      const matchingMenuItems = await Menu.find({ name: { $regex: regexFilter } }).distinct("restaurant");
+        const fuzzyRegexPattern = safeChars.map((char) => `${char}+`).join(".*");
+        const regexFilter = new RegExp(fuzzyRegexPattern, "i");
 
-      filterObj.$or = [
-        { name: { $regex: regexFilter } },
-        { cuisine: { $regex: regexFilter } },
-        { description: { $regex: regexFilter } },
-        { _id: { $in: matchingMenuItems } },
-      ];
+        // Search matching menu items to also find restaurants offering matching food
+        const matchingMenuItems = await Menu.find({ name: { $regex: regexFilter } }).distinct("restaurant");
+
+        filterObj.$or = [
+          { name: { $regex: regexFilter } },
+          { cuisine: { $regex: regexFilter } },
+          { description: { $regex: regexFilter } },
+          { _id: { $in: matchingMenuItems } },
+        ];
+      } catch (err) {
+        const literalRegex = new RegExp(escapeRegex(q), "i");
+        filterObj.$or = [
+          { name: { $regex: literalRegex } },
+          { cuisine: { $regex: literalRegex } },
+          { description: { $regex: literalRegex } },
+        ];
+      }
     }
 
     // 2. Cuisine Filter
