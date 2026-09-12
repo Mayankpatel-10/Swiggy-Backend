@@ -4,8 +4,10 @@
 
 ## 📌 1. Project Overview & Executive Summary
 
-### 1.1 Project Title
-**Swiggy: High-Scale Food Delivery SaaS Platform with Intelligent Security, Dynamic Pricing & Geo-Spatial Routing**
+### 1.1 Project Title & Live Link
+* **Title**: **Swiggy: High-Scale Food Delivery SaaS Platform with Intelligent Security, Dynamic Pricing & Geo-Spatial Routing**
+* **🌐 Live Production URL**: [https://swiggy-backend-vwvl.onrender.com](https://swiggy-backend-vwvl.onrender.com)
+* **📦 GitHub Repository**: [https://github.com/Mayankpatel-10/Swiggy-Backend.git](https://github.com/Mayankpatel-10/Swiggy-Backend.git)
 
 ### 1.2 Executive Summary
 This project presents an enterprise-grade, full-stack food delivery software application engineered using **Node.js, Express.js, MongoDB Atlas, Socket.IO, React, Vite, and Tailwind CSS**. 

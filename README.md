@@ -1,5 +1,8 @@
 # 🍛 Swiggy - Production Food Delivery & Security Platform
 
+[![Live Render Deployment](https://img.shields.io/badge/Render-Live%20Deployment-brightgreen?logo=render)](https://swiggy-backend-vwvl.onrender.com)
+**🌐 Live Deployed Application**: [https://swiggy-backend-vwvl.onrender.com](https://swiggy-backend-vwvl.onrender.com)
+
 A production-quality full-stack food delivery SaaS application built with **Node.js, Express, MongoDB, Socket.IO, React, Vite, and Tailwind CSS**, featuring enterprise-grade Fraud Detection, Dynamic Surge Pricing, Smart Geo-Based Delivery Assignment, Real-Time WebSockets Tracking, and a Personalized Recommendation Engine.
 
 ---
