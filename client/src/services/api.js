@@ -1,8 +1,14 @@
 import axios from 'axios';
 
-const BACKEND_URL =
-  import.meta.env.VITE_API_URL ||
-  (import.meta.env.PROD ? 'https://swiggy-backend-vwvl.onrender.com/api' : '/api');
+let rawUrl = import.meta.env.VITE_API_URL;
+let BACKEND_URL = '/api';
+
+if (rawUrl && rawUrl.trim() !== '') {
+  rawUrl = rawUrl.trim().replace(/\/+$/, '');
+  BACKEND_URL = rawUrl.endsWith('/api') ? rawUrl : `${rawUrl}/api`;
+} else if (import.meta.env.PROD) {
+  BACKEND_URL = 'https://swiggy-backend-vwvl.onrender.com/api';
+}
 
 const API = axios.create({
   baseURL: BACKEND_URL,
