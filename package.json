@@ -11,7 +11,8 @@
     "test:full": "node src/tests/fullBackendTest.js",
     "test:6features": "node src/tests/detailedFeaturesTest.js",
     "test:extreme": "node src/tests/extremeOutOfLimitTest.js",
-    "build:client": "cd client && npm run build"
+    "build:client": "cd client && npm run build",
+    "build": "npm install && cd client && npm install && npm run build"
   },
   "keywords": [],
   "author": "",
