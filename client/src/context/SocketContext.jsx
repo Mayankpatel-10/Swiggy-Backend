@@ -10,7 +10,11 @@ export const SocketProvider = ({ children }) => {
   const [activeAlerts, setActiveAlerts] = useState([]);
 
   useEffect(() => {
-    const newSocket = io(window.location.origin, {
+    const SOCKET_SERVER_URL =
+      import.meta.env.VITE_SOCKET_URL ||
+      (import.meta.env.PROD ? 'https://swiggy-backend-vwvl.onrender.com' : window.location.origin);
+
+    const newSocket = io(SOCKET_SERVER_URL, {
       transports: ['websocket', 'polling'],
     });
 

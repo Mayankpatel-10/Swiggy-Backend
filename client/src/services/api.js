@@ -1,7 +1,11 @@
 import axios from 'axios';
 
+const BACKEND_URL =
+  import.meta.env.VITE_API_URL ||
+  (import.meta.env.PROD ? 'https://swiggy-backend-vwvl.onrender.com/api' : '/api');
+
 const API = axios.create({
-  baseURL: '/api',
+  baseURL: BACKEND_URL,
   headers: {
     'Content-Type': 'application/json',
   },
