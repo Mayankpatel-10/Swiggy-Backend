@@ -28,9 +28,27 @@ app.use("/api/delivery", deliveryRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/notifications", notificationRoutes);
 
-// Serve Frontend Static Build in Production / Integrated Mode
-const clientDistPath = path.join(__dirname, "../client/dist");
-app.use(express.static(clientDistPath));
+// Root API Health & Directory Route
+app.get("/", (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: "🚀 Swiggy Food Delivery Platform Backend API Server is Live",
+    version: "1.0.0",
+    status: "Operational",
+    endpoints: {
+      auth: "/api/auth",
+      restaurants: "/api/restaurants",
+      search: "/api/restaurants/search",
+      orders: "/api/orders",
+      delivery: "/api/delivery",
+      admin: "/api/admin",
+      notifications: "/api/notifications",
+      surgePricing: "/api/orders/calculate-delivery-fee",
+      recommendations: "/api/restaurants/recommendations/:userId",
+      fraudMonitoring: "/api/admin/fraud/orders",
+    },
+  });
+});
 
 app.get("/api-status", (req, res) => {
   res.status(200).json({
@@ -40,16 +58,12 @@ app.get("/api-status", (req, res) => {
   });
 });
 
-// Fallback to Index.html for Single Page React App (Express 5.x compatible syntax)
+// 404 Fallback for Undefined API Routes
 app.use((req, res, next) => {
-  if (req.method === "GET" && !req.path.startsWith("/api")) {
-    return res.sendFile(path.join(clientDistPath, "index.html"), (err) => {
-      if (err) {
-        return res.status(200).json({
-          success: true,
-          message: "Swiggy API Server Running. (Build client app with 'npm run build' inside client/)",
-        });
-      }
+  if (req.method === "GET" || req.method === "POST" || req.method === "PUT" || req.method === "DELETE") {
+    return res.status(404).json({
+      success: false,
+      message: `API Route '${req.originalUrl}' not found on Swiggy Backend Server`,
     });
   }
   next();
