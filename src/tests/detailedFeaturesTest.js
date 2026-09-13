@@ -119,13 +119,13 @@ async function runDetailed6FeaturesTesting() {
     // =========================================================================
     console.log("🛡️ FEATURE 1: Fraud Detection and Order Validation System");
 
-    // 1.1 Rapid ordering & high order value fraud trigger (Quantity 100 -> Value > ₹5000)
+    // 1.1 Rapid ordering & high order value fraud trigger (Quantity 200 -> Value > ₹5000)
     const highValOrderRes = await apiRequest(
       "POST",
       "/orders/create",
       {
         restaurantId: restId,
-        items: [{ menuItem: menuId, quantity: 100 }], // High value order > ₹5000
+        items: [{ menuItem: menuId, quantity: 200 }], // High value order > ₹5000
         deliveryAddress: "Security Test Address",
         paymentMethod: "UPI",
       },
